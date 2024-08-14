@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.xings.DateTime</id>
+
+  <_name>Xings Date &amp; Time</_name>
+  <_summary>Adjust time, date &amp; time zone</_summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </recommends>
+
+  <description>
+    <_p>
+      Adjust time, date &amp; time zone
+    </_p>
+  </description>
+
+  <launchable type="desktop-id">xings-date-time.desktop</launchable>
+
+  <url type="homepage">https://github.com/matiasdelellis/xings-date-time/</url>
+
+  <url type="bugtracker">https://github.com/matiasdelellis/xings-date-time/issues/new</url>
+
+  <url type="donate">https://github.com/matiasdelellis/xings-date-time/wiki/Donate</url>
+
+  <update_contact>mati86dl_at_gmail.com</update_contact>
+
+</component>

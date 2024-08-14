@@ -1,0 +1,124 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Xings Night Color Daemon\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-08-14 09:15-0300\n"
+"PO-Revision-Date: 2024-08-13 23:46-0300\n"
+"Last-Translator: \n"
+"Language-Team: Matias De lellis\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.4.2\n"
+
+#: ../src/xings-date-time.c:45 ../data/xings-date-time.desktop.in.h:1
+#: ../data/xdt-panel.ui.h:1
+msgid "Date & Time"
+msgstr "Fecha y Hora"
+
+#: ../src/xings-date-time.c:76
+msgid "Xings Date & Time"
+msgstr "Fecha y Hora de Xings"
+
+#. TRANSLATORS: turn on all debugging
+#: ../src/xdt-debug.c:113
+msgid "Show debugging information for all files"
+msgstr "Mostrar información de depuración para todos los archivos"
+
+#: ../src/xdt-debug.c:171
+msgid "Debugging Options"
+msgstr "Opciones de depuración"
+
+#: ../src/xdt-debug.c:171
+msgid "Show debugging options"
+msgstr "Mostrar opciones de depuración"
+
+#: ../src/xdt-common.c:29
+msgid "%k:%M:%S, %A, %e of %B of %Y"
+msgstr "%k:%M:%S, %A, %e de %B de %Y"
+
+#: ../src/xdt-datetime-dialog.c:93
+#, c-format
+msgid "Failed to set time: %s"
+msgstr "No se pudo establecer la hora: %s"
+
+#: ../src/xdt-panel.c:55
+#, c-format
+msgid "Failed to set Ntp state: %s"
+msgstr "No se pudo establecer el estado de Ntp: %s"
+
+#: ../src/xdt-panel.c:94 ../src/xdt-panel.c:215
+#, c-format
+msgid "Failed to get timezone: %s"
+msgstr "No se pudo obtener la zona horaria: %s"
+
+#: ../src/xdt-panel.c:190
+#, c-format
+msgid "Failed to get Ntp state: %s"
+msgstr "No se pudo obtener el estado Ntp: %s"
+
+#: ../src/xdt-timezone-dialog.c:53
+#, c-format
+msgid "Failed to set timezone: %s"
+msgstr "No se pudo establecer la zona horaria: %s"
+
+#: ../data/appdata/org.xings.DateTime.metainfo.xml.in.h:1
+msgid "Xings Date &amp; Time"
+msgstr "Fecha y Hora de Xings"
+
+#: ../data/appdata/org.xings.DateTime.metainfo.xml.in.h:2
+msgid "Adjust time, date &amp; time zone"
+msgstr "Ajustar fecha, hora y zona horaria"
+
+#: ../data/xings-date-time.desktop.in.h:2
+msgid "Adjust time, date & time zone"
+msgstr "Ajustar fecha, hora y zona horaria"
+
+#: ../data/xdt-panel.ui.h:2
+msgid "Set time automatically"
+msgstr "Establecer la hora automáticamente"
+
+#: ../data/xdt-panel.ui.h:3
+msgid "Time zone"
+msgstr "Zona horaria"
+
+#: ../data/xdt-panel.ui.h:4
+msgid "Set date and time manually"
+msgstr "Establecer fecha y hora manualmente"
+
+#: ../data/xdt-panel.ui.h:5
+msgid "Change"
+msgstr "Cambiar"
+
+#: ../data/xdt-datetime-dialog.ui.h:1
+msgid "Hour"
+msgstr "Hora"
+
+#: ../data/xdt-datetime-dialog.ui.h:2
+msgid "Minute"
+msgstr "Minuto"
+
+#: ../data/xdt-datetime-dialog.ui.h:3
+msgid "Second"
+msgstr "Segundo"
+
+#: ../data/xdt-datetime-dialog.ui.h:4
+msgid "Date"
+msgstr "Fecha"
+
+#: ../data/xdt-datetime-dialog.ui.h:5
+msgid "Change date and time"
+msgstr "Cambiar fecha y hora"
+
+#: ../data/xdt-timezone-dialog.ui.h:1
+msgid "Change time zone"
+msgstr "Cambiar zona horaria"
+
+#, c-format

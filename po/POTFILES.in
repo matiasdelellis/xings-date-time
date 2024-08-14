@@ -1,0 +1,11 @@
+src/xings-date-time.c
+src/xdt-debug.c
+src/xdt-common.c
+src/xdt-datetime-dialog.c
+src/xdt-panel.c
+src/xdt-timezone-dialog.c
+data/appdata/org.xings.DateTime.metainfo.xml.in
+data/xings-date-time.desktop.in
+[type: gettext/glade]data/xdt-panel.ui
+[type: gettext/glade]data/xdt-datetime-dialog.ui
+[type: gettext/glade]data/xdt-timezone-dialog.ui
