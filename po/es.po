@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Xings Night Color Daemon\n"
+"Project-Id-Version: xings-date-time\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-08-14 09:15-0300\n"
 "PO-Revision-Date: 2024-08-13 23:46-0300\n"
@@ -27,8 +27,7 @@ msgstr "Fecha y Hora"
 msgid "Xings Date & Time"
 msgstr "Fecha y Hora de Xings"
 
-#. TRANSLATORS: turn on all debugging
-#: ../src/xdt-debug.c:113
+#: ../src/xings-date-time.c
 msgid "Show debugging information for all files"
 msgstr "Mostrar información de depuración para todos los archivos"
 
@@ -121,4 +120,22 @@ msgstr "Cambiar fecha y hora"
 msgid "Change time zone"
 msgstr "Cambiar zona horaria"
 
-#, c-format
+#: ../src/xdt-datetime-dialog.c:61
+msgid "Invalid date and time"
+msgstr "Fecha y hora no válidas"
+
+#: ../src/xdt-datetime-dialog.c:101
+msgid "Invalid date and time selected"
+msgstr "La fecha y hora seleccionadas no son válidas"
+
+#: ../src/xdt-panel.c:128
+msgid "Failed to open time zone dialog"
+msgstr "No se pudo abrir el diálogo de zona horaria"
+
+#: ../src/xdt-panel.c:235
+msgid "Unknown"
+msgstr "Desconocida"
+
+#: ../data/xings-date-time.desktop.in.h:3
+msgid "Time;Date;Timezone;Clock;"
+msgstr "Hora;Fecha;Zona horaria;Reloj;"

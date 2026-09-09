@@ -48,12 +48,20 @@ xdt_panel_time_auto_set (GtkSwitch *widget,
 	GError *error = NULL;
 
 	if (!xdt_set_ntp (state, &error)) {
+		GtkWidget *toplevel;
+		gchar *message;
+
 		g_signal_handlers_block_by_func (widget, xdt_panel_time_auto_set, panel);
 		gtk_switch_set_active (widget, !state);
 		g_signal_handlers_unblock_by_func (widget, xdt_panel_time_auto_set, panel);
 
-		g_critical (_("Failed to set Ntp state: %s"), error->message);
-		g_error_free(error);
+		message = g_strdup_printf (_("Failed to set Ntp state: %s"), error->message);
+		g_critical ("%s", message);
+		toplevel = gtk_widget_get_toplevel (GTK_WIDGET (panel));
+		xdt_show_error_dialog (GTK_IS_WINDOW (toplevel) ? GTK_WINDOW (toplevel) : NULL,
+		                       message);
+		g_free (message);
+		g_error_free (error);
 
 		return TRUE;
 	}
@@ -133,7 +141,7 @@ xdt_update_time_label (XdtPanel *panel)
 	GDateTime *date_time = NULL;
 
 	date_time = g_date_time_new_now_local();
-	label = xdt_get_frienly_date_time(date_time);
+	label = xdt_get_friendly_date_time(date_time);
 	g_date_time_unref (date_time);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "label_current_time"));

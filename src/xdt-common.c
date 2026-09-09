@@ -20,12 +20,32 @@
 #endif
 
 #include <glib/gi18n.h>
+#include <gtk/gtk.h>
 
 #include "xdt-common.h"
 
 gchar *
-xdt_get_frienly_date_time (GDateTime *date_time)
+xdt_get_friendly_date_time (GDateTime *date_time)
 {
 	g_return_val_if_fail (date_time != NULL, NULL);
 	return g_date_time_format (date_time, _("%k:%M:%S, %A, %e of %B of %Y"));
+}
+
+void
+xdt_show_error_dialog (GtkWindow   *parent,
+                       const gchar *message)
+{
+	GtkWidget *dialog;
+
+	g_return_if_fail (message != NULL);
+
+	dialog = gtk_message_dialog_new (parent,
+	                                 GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+	                                 GTK_MESSAGE_ERROR,
+	                                 GTK_BUTTONS_CLOSE,
+	                                 "%s", message);
+	gtk_window_set_icon_name (GTK_WINDOW (dialog), "time-admin");
+	g_signal_connect_swapped (dialog, "response",
+	                          G_CALLBACK (gtk_widget_destroy), dialog);
+	gtk_widget_show_all (dialog);
 }

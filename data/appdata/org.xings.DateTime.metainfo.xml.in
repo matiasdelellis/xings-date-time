@@ -20,13 +20,29 @@
     </_p>
   </description>
 
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/user-attachments/assets/2895e187-59be-45e2-b7be-55c67af7dcd6</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.2.0" date="2024-08-13" />
+  </releases>
+
+  <content_rating type="oars-1.1" />
+
+  <developer>
+    <name>Matias De lellis</name>
+  </developer>
+
   <launchable type="desktop-id">xings-date-time.desktop</launchable>
 
   <url type="homepage">https://github.com/matiasdelellis/xings-date-time/</url>
 
   <url type="bugtracker">https://github.com/matiasdelellis/xings-date-time/issues/new</url>
 
-  <url type="donate">https://github.com/matiasdelellis/xings-date-time/wiki/Donate</url>
+  <url type="donation">https://github.com/matiasdelellis/xings-date-time/wiki/Donate</url>
 
   <update_contact>mati86dl_at_gmail.com</update_contact>
 

@@ -19,11 +19,16 @@
 #define __XDT_COMMON_H
 
 #include <gio/gio.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
 gchar *
-xdt_get_frienly_date_time (GDateTime *date_time);
+xdt_get_friendly_date_time (GDateTime *date_time);
+
+void
+xdt_show_error_dialog (GtkWindow   *parent,
+                       const gchar *message);
 
 G_END_DECLS
 

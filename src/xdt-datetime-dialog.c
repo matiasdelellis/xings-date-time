@@ -61,7 +61,7 @@ xdt_date_time_dialog_update_label (GtkBuilder *builder)
 		gtk_label_set_text (GTK_LABEL (widget), _("Invalid date and time"));
 		return;
 	}
-	label = xdt_get_frienly_date_time(date_time);
+	label = xdt_get_friendly_date_time(date_time);
 	g_date_time_unref (date_time);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_current_time"));
@@ -92,22 +92,32 @@ xdt_date_time_dialog_apply_activated_cb (GtkButton  *button,
 	GtkWidget *parent;
 	GDateTime *date_time;
 	GError *error = NULL;
+	gchar *message;
+
+	parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
 
 	date_time = xdt_date_time_new_local_from_dialog (builder);
 	if (date_time == NULL) {
-		g_warning (_("Invalid date and time selected"));
+		message = g_strdup (_("Invalid date and time selected"));
+		g_warning ("%s", message);
+		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
+		                       message);
+		g_free (message);
 		return;
 	}
 	if (!xdt_set_time (date_time, &error)) {
-		g_critical (_("Failed to set time: %s"), error->message);
-		g_error_free(error);
+		message = g_strdup_printf (_("Failed to set time: %s"), error->message);
+		g_critical ("%s", message);
+		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
+		                       message);
+		g_free (message);
+		g_error_free (error);
 		g_date_time_unref (date_time);
 		return;
 	}
 	g_date_time_unref (date_time);
 
-	parent = gtk_widget_get_toplevel (GTK_WIDGET(button));
-	gtk_widget_destroy(GTK_WIDGET(parent));
+	gtk_widget_destroy (parent);
 }
 
 
@@ -157,7 +167,7 @@ xdt_date_time_dialog (GDateTime *date_time, GtkWindow *parent)
 	                  G_CALLBACK (xdt_date_time_dialog_value_changed_cb), builder);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_current_time"));
-	label = xdt_get_frienly_date_time(date_time);
+	label = xdt_get_friendly_date_time(date_time);
 	gtk_label_set_text (GTK_LABEL (widget), label);
 	g_free(label);
 

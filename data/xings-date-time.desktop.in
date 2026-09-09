@@ -2,10 +2,12 @@
 Type=Application
 _Name=Date & Time
 _Comment=Adjust time, date & time zone
+_Keywords=Time;Date;Timezone;Clock;
 Categories=Settings;HardwareSettings;GTK;X-XFCE;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;
 Exec=xings-date-time
 Icon=time-admin
 Terminal=false
+StartupNotify=true
 Hidden=false
 NotShowIn=GNOME;KDE;Unity;
 X-XfcePluggable=false

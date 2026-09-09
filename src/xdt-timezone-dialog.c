@@ -43,18 +43,24 @@ xdt_timezone_dialog_apply_activated_cb (GtkButton  *button,
 	GtkWidget *parent, *widget;
 	const gchar *timezone = NULL;
 	GError *error = NULL;
+	gchar *message;
+
+	parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_timezone"));
 	timezone = gtk_label_get_text (GTK_LABEL (widget));
 
 	if (!xdt_set_timezone (timezone, &error)) {
-		g_critical (_("Failed to set timezone: %s"), error->message);
-		g_error_free(error);
+		message = g_strdup_printf (_("Failed to set timezone: %s"), error->message);
+		g_critical ("%s", message);
+		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
+		                       message);
+		g_free (message);
+		g_error_free (error);
 		return;
 	}
 
 
-	parent = gtk_widget_get_toplevel (GTK_WIDGET(button));
 	gtk_window_close (GTK_WINDOW (parent));
 }
 
@@ -135,7 +141,6 @@ xdt_timezone_dialog_new (const gchar *timezone, GtkWindow *parent)
 	GError *error = NULL;
 	GVariant *timezones;
 	GVariantIter *iter;
-	const gchar **array = NULL;
 
 	builder = gtk_builder_new ();
 	retval = gtk_builder_add_from_file (builder, PKGDATADIR "/xdt-timezone-dialog.ui", &error);

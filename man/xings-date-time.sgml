@@ -1,6 +1,6 @@
 <!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY date        "<date>07 June, 202</date>">
+  <!ENTITY date        "<date>13 August, 2024</date>">
   <!ENTITY package     "xings-date-time">
   <!ENTITY gnu         "<acronym>GNU</acronym>">
   <!ENTITY gpl         "&gnu; <acronym>GPL</acronym>">
@@ -46,7 +46,7 @@
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
-    <para>xings-date-time (1).</para>
+    <para>timedatectl (1).</para>
   </refsect1>
   <refsect1>
     <title>AUTHOR</title>
