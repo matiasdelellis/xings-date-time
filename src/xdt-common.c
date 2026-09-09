@@ -26,5 +26,6 @@
 gchar *
 xdt_get_frienly_date_time (GDateTime *date_time)
 {
+	g_return_val_if_fail (date_time != NULL, NULL);
 	return g_date_time_format (date_time, _("%k:%M:%S, %A, %e of %B of %Y"));
 }

@@ -33,9 +33,7 @@ xdt_timezone_dialog_cancel_activated_cb (GtkButton  *button,
 {
 	GtkWidget *parent;
 	parent = gtk_widget_get_toplevel (GTK_WIDGET(button));
-	gtk_window_close(GTK_WINDOW(parent));
-
-	g_object_unref (builder);
+	gtk_window_close (GTK_WINDOW (parent));
 }
 
 static void
@@ -47,7 +45,7 @@ xdt_timezone_dialog_apply_activated_cb (GtkButton  *button,
 	GError *error = NULL;
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_timezone"));
-	timezone = gtk_label_get_text(GTK_LABEL(widget));
+	timezone = gtk_label_get_text (GTK_LABEL (widget));
 
 	if (!xdt_set_timezone (timezone, &error)) {
 		g_critical (_("Failed to set timezone: %s"), error->message);
@@ -57,9 +55,7 @@ xdt_timezone_dialog_apply_activated_cb (GtkButton  *button,
 
 
 	parent = gtk_widget_get_toplevel (GTK_WIDGET(button));
-	gtk_window_close(GTK_WINDOW(parent));
-
-	g_object_unref (builder);
+	gtk_window_close (GTK_WINDOW (parent));
 }
 
 static void
@@ -68,9 +64,18 @@ xdt_timezone_row_selected (GtkListBox    *listbox,
                            GtkBuilder *builder)
 {
 	GtkWidget *widget = NULL;
-	const gchar *timezone = g_object_get_data (G_OBJECT (row), "TIMEZONE");
+	const gchar *timezone;
+
+	/* row is NULL when the selection is cleared */
+	if (row == NULL)
+		return;
+
+	timezone = g_object_get_data (G_OBJECT (row), "TIMEZONE");
+	if (timezone == NULL)
+		return;
+
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_timezone"));
-	gtk_label_set_text(GTK_LABEL(widget), timezone);
+	gtk_label_set_text (GTK_LABEL (widget), timezone);
 }
 
 static gboolean
@@ -78,21 +83,29 @@ xdt_timezone_list_filter (GtkListBoxRow *row,
                           GtkBuilder *builder)
 {
 	GtkWidget *widget;
+	const gchar *timezone;
+	const gchar *search_text;
 	gchar *search_text_lower, *timezone_lower;
+	gboolean match;
+
+	timezone = g_object_get_data (G_OBJECT (row), "TIMEZONE");
+	if (timezone == NULL)
+		return FALSE;
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "timezone_filter"));
-
-	timezone_lower = g_ascii_strdown(g_object_get_data (G_OBJECT (row), "TIMEZONE"), -1);
-	search_text_lower = g_ascii_strdown(gtk_entry_get_text (GTK_ENTRY (widget)), -1);
-
-	if (g_strrstr(timezone_lower, search_text_lower) != NULL) {
+	search_text = gtk_entry_get_text (GTK_ENTRY (widget));
+	if (search_text == NULL)
 		return TRUE;
-	}
+
+	timezone_lower = g_ascii_strdown (timezone, -1);
+	search_text_lower = g_ascii_strdown (search_text, -1);
+
+	match = (g_strrstr (timezone_lower, search_text_lower) != NULL);
 
 	g_free (search_text_lower);
 	g_free (timezone_lower);
 
-	return FALSE;
+	return match;
 }
 void
 xdt_timezone_list_filter_changed (GtkSearchEntry *self, GtkBuilder *builder)
@@ -117,7 +130,6 @@ xdt_timezone_dialog_new (const gchar *timezone, GtkWindow *parent)
 {
 	GtkWidget *widget, *row;
 	GtkBuilder *builder;
-	GtkTextBuffer *buffer = NULL;
 	gchar *label = NULL;
 	guint retval;
 	GError *error = NULL;
@@ -130,16 +142,18 @@ xdt_timezone_dialog_new (const gchar *timezone, GtkWindow *parent)
 	if (retval == 0) {
 		g_warning ("Failed to load ui: %s", error->message);
 		g_error_free (error);
-		return FALSE;
+		g_object_unref (builder);
+		return NULL;
 	}
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_timezone"));
-	gtk_label_set_text(GTK_LABEL(widget), timezone);
+	gtk_label_set_text (GTK_LABEL (widget), timezone);
 
 	if (!xdt_list_timezones (&timezones, &error)) {
 		g_warning ("Failed to ListTimezones: %s", error->message);
 		g_error_free (error);
-		return FALSE;
+		g_object_unref (builder);
+		return NULL;
 	}
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "timezone_list"));
@@ -180,6 +194,12 @@ xdt_timezone_dialog_new (const gchar *timezone, GtkWindow *parent)
 	gtk_window_set_transient_for (GTK_WINDOW (widget), parent);
 	gtk_window_set_modal (GTK_WINDOW (widget), TRUE);
 	gtk_window_set_icon_name (GTK_WINDOW (widget), "time-admin");
+
+	/* The dialog owns the builder: this keeps it alive for the
+	 * signal handlers above and releases it when the dialog
+	 * is destroyed, however it is closed. */
+	g_object_set_data_full (G_OBJECT (widget), "xdt-builder",
+	                        builder, g_object_unref);
 
 	return widget;
 }

@@ -125,6 +125,8 @@ xdt_get_timezone (gchar **timezone, GError **error)
 	                                 NULL,
 	                                 error);
 
+	g_object_unref (proxy);
+
 	if (retvar == NULL)
 		return FALSE;
 
@@ -199,6 +201,7 @@ xdt_list_timezones (GVariant **timezones, GError **error)
 	                                 NULL,
 	                                 error);
 
+	g_object_unref (proxy);
 
 	if (retvar == NULL)
 		return FALSE;

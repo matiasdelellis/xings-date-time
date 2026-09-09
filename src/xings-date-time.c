@@ -24,6 +24,7 @@
 #include <glib/gi18n.h>
 #include <gio/gio.h>
 #include <gtk/gtk.h>
+#include <locale.h>
 
 #include "xdt-debug.h"
 
@@ -55,13 +56,31 @@ xings_date_time_application_activate (GtkApplication *application,
 	gtk_window_present (GTK_WINDOW (window));
 }
 
+static gint
+xings_date_time_handle_local_options (GApplication *application,
+                                      GVariantDict *options,
+                                      gpointer      user_data)
+{
+	gboolean verbose = FALSE;
+
+	g_variant_dict_lookup (options, "verbose", "b", &verbose);
+	xdt_debug_set_verbose (verbose);
+
+	/* -1 lets the application continue with activate */
+	return -1;
+}
+
 int
 main (int    argc,
       char **argv)
 {
 	GtkApplication *app;
-	GOptionContext *context;
 	int status;
+	const GOptionEntry option_entries[] = {
+		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, NULL,
+		  N_("Show debugging information for all files"), NULL },
+		{ NULL }
+	};
 
 	/* Translation */
 
@@ -70,17 +89,17 @@ main (int    argc,
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	/* Debug options */
-
-	context = g_option_context_new (NULL);
-	g_option_context_set_summary (context, _("Xings Date & Time"));
-	g_option_context_add_group (context, xdt_debug_get_option_group ());
-	g_option_context_parse (context, &argc, &argv, NULL);
-	g_option_context_free (context);
-
 	/* GtkApplication */
 
-	app = gtk_application_new ("org.xings.DateTime", G_APPLICATION_FLAGS_NONE);
+	app = gtk_application_new ("org.xings.DateTime",
+#if GLIB_CHECK_VERSION (2, 74, 0)
+	                             G_APPLICATION_DEFAULT_FLAGS);
+#else
+	                             G_APPLICATION_FLAGS_NONE);
+#endif
+	g_application_add_main_option_entries (G_APPLICATION (app), option_entries);
+	g_signal_connect (app, "handle-local-options",
+	                  G_CALLBACK (xings_date_time_handle_local_options), NULL);
 	g_signal_connect (app, "activate",
 	                  G_CALLBACK (xings_date_time_application_activate), NULL);
 

@@ -155,6 +155,22 @@ xdt_debug_post_parse_hook (GOptionContext *context, GOptionGroup *group, gpointe
 }
 
 /**
+ * xdt_debug_set_verbose:
+ * @verbose: Whether verbose debugging is enabled
+ *
+ * Enables or disables verbose debugging. Safe to call
+ * multiple times, e.g. from GApplication command line handling.
+ */
+void
+xdt_debug_set_verbose (gboolean verbose)
+{
+	_verbose = verbose;
+	_console = (isatty (fileno (stdout)) == 1);
+	xdt_debug_add_log_domain (G_LOG_DOMAIN);
+	g_debug ("Verbose debugging %s (on console %i)", _verbose ? "enabled" : "disabled", _console);
+}
+
+/**
  * xdt_debug_get_option_group:
  *
  * Returns a #GOptionGroup for the command line arguments recognized

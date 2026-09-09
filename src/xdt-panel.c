@@ -116,8 +116,12 @@ xdt_panel_timezone_activated_cb (GtkButton *button,
 	parent = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET(button)));
 
 	widget = xdt_timezone_dialog_new (timezone, parent);
+	if (widget == NULL) {
+		g_warning (_("Failed to open time zone dialog"));
+		return;
+	}
 	g_signal_connect (G_OBJECT (widget), "delete_event",
-	                  G_CALLBACK(xdt_panel_timezone_closed_cb), panel);
+	                  G_CALLBACK (xdt_panel_timezone_closed_cb), panel);
 	gtk_widget_show_all (widget);
 }
 
@@ -158,7 +162,7 @@ xdt_panel_finalize (GObject *object)
 		panel->label_timeout_id = 0;
 	}
 
-	g_object_unref (panel->builder);
+	g_clear_object (&panel->builder);
 
 	G_OBJECT_CLASS (xdt_panel_parent_class)->finalize (object);
 }
@@ -171,25 +175,31 @@ static void
 xdt_panel_init (XdtPanel *panel)
 {
 	GtkWidget *widget;
-	gboolean enabled;
+	gboolean enabled = FALSE;
 	gchar *timezone = NULL;
 	GError *error = NULL;
 
 	/* Get builder to construct panel */
 
-	panel->builder = gtk_builder_new_from_file(PKGDATADIR "/xdt-panel.ui");
+	panel->builder = gtk_builder_new_from_file (PKGDATADIR "/xdt-panel.ui");
 
 	/* Main widget */
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "xdt-panel"));
+	if (widget == NULL) {
+		g_critical ("Failed to load panel UI");
+		return;
+	}
 	gtk_box_pack_start (GTK_BOX (panel), GTK_WIDGET (widget), TRUE, TRUE, 0);
 
-	/* Init widgets and connect signals */
+	/* Init widgets and connect signals.
+	 * D-Bus failures must not leave the panel half-initialized:
+	 * fall back to sane defaults and keep going. */
 
 	if (!xdt_get_ntp (&enabled, &error)) {
-		g_debug (_("Failed to get Ntp state: %s"), error->message);
-		g_error_free(error);
-		return;
+		g_warning (_("Failed to get Ntp state: %s"), error->message);
+		g_error_free (error);
+		enabled = FALSE;
 	}
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_time_auto"));
@@ -212,9 +222,9 @@ xdt_panel_init (XdtPanel *panel)
 	/* Timezone */
 
 	if (!xdt_get_timezone (&timezone, &error)) {
-		g_debug (_("Failed to get timezone: %s"), error->message);
-		g_error_free(error);
-		return;
+		g_warning (_("Failed to get timezone: %s"), error->message);
+		g_error_free (error);
+		timezone = g_strdup (_("Unknown"));
 	}
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_timezone"));
 	gtk_button_set_label (GTK_BUTTON (widget), timezone);

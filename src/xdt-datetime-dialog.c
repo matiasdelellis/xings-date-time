@@ -34,16 +34,16 @@ xdt_date_time_new_local_from_dialog (GtkBuilder *builder)
 	guint year, month, day, hour, min, sec;
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "calendar"));
- 	gtk_calendar_get_date(GTK_CALENDAR(widget), &year, &month, &day);
+	gtk_calendar_get_date (GTK_CALENDAR (widget), &year, &month, &day);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "hour_spin"));
-	hour = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	hour = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "minutes_spin"));
-	min  = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	min = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "seconds_spin"));
-	sec = atoi(gtk_entry_get_text(GTK_ENTRY(widget)));
+	sec = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
 
 	return g_date_time_new_local (year, month + 1, day, hour, min, sec);
 }
@@ -56,6 +56,11 @@ xdt_date_time_dialog_update_label (GtkBuilder *builder)
 	gchar *label = NULL;
 
 	date_time = xdt_date_time_new_local_from_dialog (builder);
+	if (date_time == NULL) {
+		widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_current_time"));
+		gtk_label_set_text (GTK_LABEL (widget), _("Invalid date and time"));
+		return;
+	}
 	label = xdt_get_frienly_date_time(date_time);
 	g_date_time_unref (date_time);
 
@@ -89,11 +94,17 @@ xdt_date_time_dialog_apply_activated_cb (GtkButton  *button,
 	GError *error = NULL;
 
 	date_time = xdt_date_time_new_local_from_dialog (builder);
+	if (date_time == NULL) {
+		g_warning (_("Invalid date and time selected"));
+		return;
+	}
 	if (!xdt_set_time (date_time, &error)) {
 		g_critical (_("Failed to set time: %s"), error->message);
 		g_error_free(error);
+		g_date_time_unref (date_time);
 		return;
 	}
+	g_date_time_unref (date_time);
 
 	parent = gtk_widget_get_toplevel (GTK_WIDGET(button));
 	gtk_widget_destroy(GTK_WIDGET(parent));
@@ -105,7 +116,6 @@ xdt_date_time_dialog (GDateTime *date_time, GtkWindow *parent)
 {
 	GtkWidget *widget;
 	GtkBuilder *builder;
-	GtkTextBuffer *buffer = NULL;
 	gchar *label = NULL;
 	guint retval;
 	GError *error = NULL;
@@ -138,12 +148,12 @@ xdt_date_time_dialog (GDateTime *date_time, GtkWindow *parent)
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "minutes_spin"));
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON(widget), g_date_time_get_minute(date_time));
-	g_signal_connect (widget, "value_changed",
+	g_signal_connect (widget, "value-changed",
 	                  G_CALLBACK (xdt_date_time_dialog_value_changed_cb), builder);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "seconds_spin"));
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON(widget), g_date_time_get_second(date_time));
-	g_signal_connect (widget, "value_changed",
+	g_signal_connect (widget, "value-changed",
 	                  G_CALLBACK (xdt_date_time_dialog_value_changed_cb), builder);
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_current_time"));
@@ -166,10 +176,18 @@ xdt_date_time_dialog (GDateTime *date_time, GtkWindow *parent)
 	gtk_window_set_modal (GTK_WINDOW (widget), TRUE);
 	gtk_window_set_icon_name (GTK_WINDOW (widget), "time-admin");
 
+	/* The dialog owns the builder: this keeps it alive for the
+	 * signal handlers above and releases it when the dialog
+	 * is destroyed, however it is closed. */
+	g_object_set_data_full (G_OBJECT (widget), "xdt-builder",
+	                        builder, g_object_unref);
+
 	gtk_widget_show_all (widget);
 
-out_build:
-	//g_object_unref (builder);
-
 	return TRUE;
+
+out_build:
+	g_object_unref (builder);
+
+	return FALSE;
 }
