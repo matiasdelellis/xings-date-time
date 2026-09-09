@@ -47,6 +47,11 @@ xdt_panel_time_auto_set (GtkSwitch *widget,
                          gboolean   state,
                          XdtPanel  *panel);
 
+static gboolean
+xdt_panel_local_rtc_set (GtkSwitch *widget,
+                         gboolean   state,
+                         XdtPanel  *panel);
+
 /* Async operation context: a weak reference to the panel plus the state
  * the user requested, so completion callbacks can bail out safely when
  * the panel is gone and revert the UI otherwise. */
@@ -251,6 +256,118 @@ xdt_panel_time_auto_set (GtkSwitch *widget,
 }
 
 static void
+xdt_panel_local_rtc_loaded_cb (GObject      *source_object,
+                               GAsyncResult *res,
+                               gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget;
+	gboolean local_rtc = FALSE;
+	GError *error = NULL;
+	gchar *message;
+
+	panel = xdt_panel_op_take_panel (user_data, NULL);
+	if (panel == NULL)
+		return;
+
+	if (!xdt_get_local_rtc_finish (res, &local_rtc, &error)) {
+		message = g_strdup_printf (_("Failed to get hardware clock state: %s"), error->message);
+		g_warning ("%s", message);
+		xdt_panel_show_error (panel, message);
+		g_free (message);
+		g_error_free (error);
+		local_rtc = FALSE;
+	}
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_local_rtc"));
+	g_signal_handlers_block_by_func (widget, xdt_panel_local_rtc_set, panel);
+	gtk_switch_set_active (GTK_SWITCH (widget), local_rtc);
+	g_signal_handlers_unblock_by_func (widget, xdt_panel_local_rtc_set, panel);
+
+	g_object_unref (panel);
+}
+
+static void
+xdt_panel_local_rtc_set_cb (GObject      *source_object,
+                            GAsyncResult *res,
+                            gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget;
+	GError *error = NULL;
+	gboolean requested_state;
+
+	panel = xdt_panel_op_take_panel (user_data, &requested_state);
+	if (panel == NULL)
+		return;
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_local_rtc"));
+	gtk_widget_set_sensitive (widget, TRUE);
+
+	if (!xdt_set_local_rtc_finish (res, &error)) {
+		gchar *message;
+
+		g_signal_handlers_block_by_func (widget, xdt_panel_local_rtc_set, panel);
+		gtk_switch_set_active (GTK_SWITCH (widget), !requested_state);
+		g_signal_handlers_unblock_by_func (widget, xdt_panel_local_rtc_set, panel);
+
+		message = g_strdup_printf (_("Failed to set hardware clock: %s"), error->message);
+		g_warning ("%s", message);
+		xdt_panel_show_error (panel, message);
+		g_free (message);
+		g_error_free (error);
+	} else {
+		xdt_panel_hide_error (panel);
+	}
+
+	g_object_unref (panel);
+}
+
+static gboolean
+xdt_panel_local_rtc_set (GtkSwitch *widget,
+                         gboolean   state,
+                         XdtPanel  *panel)
+{
+	gtk_switch_set_state (widget, state);
+	gtk_widget_set_sensitive (GTK_WIDGET (widget), FALSE);
+
+	xdt_set_local_rtc_async (state, NULL,
+	                         xdt_panel_local_rtc_set_cb,
+	                         xdt_panel_op_new (panel, state));
+
+	return TRUE;
+}
+
+static void
+xdt_panel_can_ntp_loaded_cb (GObject      *source_object,
+                             GAsyncResult *res,
+                             gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget;
+	gboolean can_ntp = TRUE;
+	GError *error = NULL;
+
+	panel = xdt_panel_op_take_panel (user_data, NULL);
+	if (panel == NULL)
+		return;
+
+	if (!xdt_get_can_ntp_finish (res, &can_ntp, &error)) {
+		g_warning (_("Failed to check automatic time support: %s"), error->message);
+		g_error_free (error);
+		can_ntp = TRUE;
+	}
+
+	if (!can_ntp) {
+		widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_time_auto"));
+		gtk_widget_set_sensitive (widget, FALSE);
+		gtk_widget_set_tooltip_text (widget, _("Automatic time is not supported on this system"));
+	}
+
+	g_object_unref (panel);
+}
+
+static void
 xdt_panel_manual_activated_cb (GtkButton *button,
                                XdtPanel  *panel)
 {
@@ -348,6 +465,7 @@ xdt_panel_properties_changed_cb (GDBusConnection *connection,
 	GVariant *value = NULL;
 	gboolean refresh_ntp = FALSE;
 	gboolean refresh_timezone = FALSE;
+	gboolean refresh_local_rtc = FALSE;
 
 	panel = XDT_PANEL (g_weak_ref_get (weak));
 	if (panel == NULL)
@@ -366,6 +484,11 @@ xdt_panel_properties_changed_cb (GDBusConnection *connection,
 		g_variant_unref (value);
 		refresh_timezone = TRUE;
 	}
+	value = g_variant_lookup_value (changed, "LocalRTC", NULL);
+	if (value != NULL) {
+		g_variant_unref (value);
+		refresh_local_rtc = TRUE;
+	}
 
 	g_variant_unref (changed);
 	g_variant_unref (invalid);
@@ -379,6 +502,11 @@ xdt_panel_properties_changed_cb (GDBusConnection *connection,
 		xdt_get_timezone_async (NULL,
 		                        xdt_panel_timezone_loaded_cb,
 		                        xdt_panel_op_new (panel, FALSE));
+	}
+	if (refresh_local_rtc) {
+		xdt_get_local_rtc_async (NULL,
+		                         xdt_panel_local_rtc_loaded_cb,
+		                         xdt_panel_op_new (panel, FALSE));
 	}
 
 	g_object_unref (panel);
@@ -499,6 +627,10 @@ xdt_panel_init (XdtPanel *panel)
 	g_signal_connect (widget, "state-set",
 	                  G_CALLBACK (xdt_panel_time_auto_set), panel);
 
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_local_rtc"));
+	g_signal_connect (widget, "state-set",
+	                  G_CALLBACK (xdt_panel_local_rtc_set), panel);
+
 	/* Manual date time button */
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_manual"));
@@ -541,6 +673,12 @@ xdt_panel_init (XdtPanel *panel)
 	xdt_get_timezone_async (NULL,
 	                        xdt_panel_timezone_loaded_cb,
 	                        xdt_panel_op_new (panel, FALSE));
+	xdt_get_local_rtc_async (NULL,
+	                         xdt_panel_local_rtc_loaded_cb,
+	                         xdt_panel_op_new (panel, FALSE));
+	xdt_get_can_ntp_async (NULL,
+	                       xdt_panel_can_ntp_loaded_cb,
+	                       xdt_panel_op_new (panel, FALSE));
 
 	/* Stay correct when settings change externally (e.g. via timedatectl) */
 	g_bus_get (G_BUS_TYPE_SYSTEM, NULL,

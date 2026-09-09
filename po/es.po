@@ -144,6 +144,33 @@ msgstr "Ninguna zona horaria coincide"
 msgid "_Close"
 msgstr "_Cerrar"
 
+#: ../data/xdt-panel.ui.h
+msgid "Hardware clock in local time"
+msgstr "Reloj del hardware en hora local"
+
+#: ../data/xdt-panel.ui.h
+msgid "Enable for dual boot with Windows; otherwise keep the hardware clock in UTC"
+msgstr "Activar para arranque dual con Windows; si no, mantener el reloj del hardware en UTC"
+
+#: ../src/xdt-panel.c:274
+#, c-format
+msgid "Failed to get hardware clock state: %s"
+msgstr "No se pudo obtener el estado del reloj del hardware: %s"
+
+#: ../src/xdt-panel.c:314
+#, c-format
+msgid "Failed to set hardware clock: %s"
+msgstr "No se pudo establecer el reloj del hardware: %s"
+
+#: ../src/xdt-panel.c:356
+#, c-format
+msgid "Failed to check automatic time support: %s"
+msgstr "No se pudo comprobar la compatibilidad con la hora automática: %s"
+
+#: ../src/xdt-panel.c:364
+msgid "Automatic time is not supported on this system"
+msgstr "La hora automática no es compatible con este sistema"
+
 #, c-format
 msgid "Failed to connect to the system bus: %s"
 msgstr "No se pudo conectar con el bus del sistema: %s"

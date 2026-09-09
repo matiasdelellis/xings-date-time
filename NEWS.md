@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-09
+
 ### Added
 
 - Asynchronous D-Bus calls: the UI never blocks on the system bus or polkit
@@ -16,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   placeholder on empty results, scroll to the current zone on open,
   double-click or Enter applies
 - Error info bar shown only for real errors
+- Hardware clock mode (local time) with automatic time support detection
 - Live refresh when time settings change externally
 - Application keywords and software center metadata (screenshots, releases)
 

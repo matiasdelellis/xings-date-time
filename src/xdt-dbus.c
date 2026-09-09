@@ -98,6 +98,127 @@ xdt_set_ntp (gboolean use_ntp, GError **error)
 }
 
 gboolean
+xdt_get_local_rtc (gboolean *local_rtc, GError **error)
+{
+	GDBusProxy *proxy = NULL;
+	GVariant *retvar, *rtcvar;
+
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+	                                       "org.freedesktop.timedate1",
+	                                       "/org/freedesktop/timedate1",
+	                                       "org.freedesktop.DBus.Properties",
+	                                       NULL,
+	                                       error);
+
+	if (proxy == NULL)
+		return FALSE;
+
+	retvar = g_dbus_proxy_call_sync (proxy,
+	                                 "Get",
+	                                  g_variant_new ("(ss)",
+	                                 "org.freedesktop.timedate1",
+	                                 "LocalRTC"),
+	                                  G_DBUS_CALL_FLAGS_NONE,
+	                                 -1,
+	                                 NULL,
+	                                 error);
+
+	g_object_unref (proxy);
+
+	if (retvar == NULL)
+		return FALSE;
+
+	g_variant_get (retvar, "(v)", &rtcvar);
+	g_variant_unref (retvar);
+
+	*local_rtc = g_variant_get_boolean (rtcvar);
+	g_variant_unref (rtcvar);
+
+	return TRUE;
+}
+
+gboolean
+xdt_set_local_rtc (gboolean local_rtc, GError **error)
+{
+	GDBusProxy *proxy = NULL;
+	GVariant *retvar;
+
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+	                                       "org.freedesktop.timedate1",
+	                                       "/org/freedesktop/timedate1",
+	                                       "org.freedesktop.timedate1",
+	                                       NULL,
+	                                       error);
+
+	if (proxy == NULL)
+		return FALSE;
+
+	/* fix_system=FALSE like timedatectl default: only flip the mode */
+	retvar = g_dbus_proxy_call_sync (proxy,
+	                                 "SetLocalRTC",
+	                                 g_variant_new ("(bbb)", local_rtc, FALSE, TRUE),
+	                                 G_DBUS_CALL_FLAGS_NONE,
+	                                 -1,
+	                                 NULL,
+	                                 error);
+
+	g_object_unref (proxy);
+
+	if (retvar == NULL)
+		return FALSE;
+
+	g_variant_unref (retvar);
+
+	return TRUE;
+}
+
+gboolean
+xdt_get_can_ntp (gboolean *can_ntp, GError **error)
+{
+	GDBusProxy *proxy = NULL;
+	GVariant *retvar, *canntpvar;
+
+	proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+	                                       G_DBUS_PROXY_FLAGS_NONE,
+	                                       NULL,
+	                                       "org.freedesktop.timedate1",
+	                                       "/org/freedesktop/timedate1",
+	                                       "org.freedesktop.DBus.Properties",
+	                                       NULL,
+	                                       error);
+
+	if (proxy == NULL)
+		return FALSE;
+
+	retvar = g_dbus_proxy_call_sync (proxy,
+	                                 "Get",
+	                                  g_variant_new ("(ss)",
+	                                 "org.freedesktop.timedate1",
+	                                 "CanNTP"),
+	                                  G_DBUS_CALL_FLAGS_NONE,
+	                                 -1,
+	                                 NULL,
+	                                 error);
+
+	g_object_unref (proxy);
+
+	if (retvar == NULL)
+		return FALSE;
+
+	g_variant_get (retvar, "(v)", &canntpvar);
+	g_variant_unref (retvar);
+
+	*can_ntp = g_variant_get_boolean (canntpvar);
+	g_variant_unref (canntpvar);
+
+	return TRUE;
+}
+
+gboolean
 xdt_get_timezone (gchar **timezone, GError **error)
 {
 	GDBusProxy *proxy = NULL;
@@ -357,6 +478,162 @@ xdt_set_ntp_finish (GAsyncResult  *result,
 	g_return_val_if_fail (g_task_is_valid (result, NULL), FALSE);
 
 	return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+static void
+xdt_get_local_rtc_thread (GTask        *task,
+                          gpointer      source_object,
+                          gpointer      task_data,
+                          GCancellable *cancellable)
+{
+	gboolean local_rtc = FALSE;
+	GError *error = NULL;
+
+	if (g_cancellable_set_error_if_cancelled (cancellable, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	if (!xdt_get_local_rtc (&local_rtc, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	g_task_return_int (task, local_rtc);
+}
+
+void
+xdt_get_local_rtc_async (GCancellable        *cancellable,
+                         GAsyncReadyCallback  callback,
+                         gpointer             user_data)
+{
+	GTask *task;
+
+	task = g_task_new (NULL, cancellable, callback, user_data);
+	g_task_set_source_tag (task, xdt_get_local_rtc_async);
+	g_task_run_in_thread (task, xdt_get_local_rtc_thread);
+	g_object_unref (task);
+}
+
+gboolean
+xdt_get_local_rtc_finish (GAsyncResult  *result,
+                          gboolean      *local_rtc,
+                          GError       **error)
+{
+	gssize value;
+
+	g_return_val_if_fail (g_task_is_valid (result, NULL), FALSE);
+
+	/* Only 0/1 are ever returned, so -1 unambiguously means error */
+	value = g_task_propagate_int (G_TASK (result), error);
+	if (value == -1)
+		return FALSE;
+
+	if (local_rtc != NULL)
+		*local_rtc = (value != 0);
+
+	return TRUE;
+}
+
+static void
+xdt_set_local_rtc_thread (GTask        *task,
+                          gpointer      source_object,
+                          gpointer      task_data,
+                          GCancellable *cancellable)
+{
+	gboolean local_rtc = GPOINTER_TO_INT (task_data);
+	GError *error = NULL;
+
+	if (g_cancellable_set_error_if_cancelled (cancellable, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	if (!xdt_set_local_rtc (local_rtc, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	g_task_return_boolean (task, TRUE);
+}
+
+void
+xdt_set_local_rtc_async (gboolean             local_rtc,
+                         GCancellable        *cancellable,
+                         GAsyncReadyCallback  callback,
+                         gpointer             user_data)
+{
+	GTask *task;
+
+	task = g_task_new (NULL, cancellable, callback, user_data);
+	g_task_set_source_tag (task, xdt_set_local_rtc_async);
+	g_task_set_task_data (task, GINT_TO_POINTER (local_rtc), NULL);
+	g_task_run_in_thread (task, xdt_set_local_rtc_thread);
+	g_object_unref (task);
+}
+
+gboolean
+xdt_set_local_rtc_finish (GAsyncResult  *result,
+                          GError       **error)
+{
+	g_return_val_if_fail (g_task_is_valid (result, NULL), FALSE);
+
+	return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+static void
+xdt_get_can_ntp_thread (GTask        *task,
+                        gpointer      source_object,
+                        gpointer      task_data,
+                        GCancellable *cancellable)
+{
+	gboolean can_ntp = FALSE;
+	GError *error = NULL;
+
+	if (g_cancellable_set_error_if_cancelled (cancellable, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	if (!xdt_get_can_ntp (&can_ntp, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
+
+	g_task_return_int (task, can_ntp);
+}
+
+void
+xdt_get_can_ntp_async (GCancellable        *cancellable,
+                       GAsyncReadyCallback  callback,
+                       gpointer             user_data)
+{
+	GTask *task;
+
+	task = g_task_new (NULL, cancellable, callback, user_data);
+	g_task_set_source_tag (task, xdt_get_can_ntp_async);
+	g_task_run_in_thread (task, xdt_get_can_ntp_thread);
+	g_object_unref (task);
+}
+
+gboolean
+xdt_get_can_ntp_finish (GAsyncResult  *result,
+                        gboolean      *can_ntp,
+                        GError       **error)
+{
+	gssize value;
+
+	g_return_val_if_fail (g_task_is_valid (result, NULL), FALSE);
+
+	/* Only 0/1 are ever returned, so -1 unambiguously means error */
+	value = g_task_propagate_int (G_TASK (result), error);
+	if (value == -1)
+		return FALSE;
+
+	if (can_ntp != NULL)
+		*can_ntp = (value != 0);
+
+	return TRUE;
 }
 
 static void

@@ -28,6 +28,15 @@ gboolean
 xdt_set_ntp (gboolean use_ntp, GError **error);
 
 gboolean
+xdt_get_local_rtc (gboolean *local_rtc, GError **error);
+
+gboolean
+xdt_set_local_rtc (gboolean local_rtc, GError **error);
+
+gboolean
+xdt_get_can_ntp (gboolean *can_ntp, GError **error);
+
+gboolean
 xdt_get_timezone (gchar **timezone, GError **error);
 
 gboolean
@@ -65,6 +74,36 @@ xdt_set_ntp_async (gboolean             use_ntp,
 gboolean
 xdt_set_ntp_finish (GAsyncResult  *result,
                     GError       **error);
+
+void
+xdt_get_local_rtc_async (GCancellable        *cancellable,
+                         GAsyncReadyCallback  callback,
+                         gpointer             user_data);
+
+gboolean
+xdt_get_local_rtc_finish (GAsyncResult  *result,
+                          gboolean      *local_rtc,
+                          GError       **error);
+
+void
+xdt_set_local_rtc_async (gboolean             local_rtc,
+                         GCancellable        *cancellable,
+                         GAsyncReadyCallback  callback,
+                         gpointer             user_data);
+
+gboolean
+xdt_set_local_rtc_finish (GAsyncResult  *result,
+                          GError       **error);
+
+void
+xdt_get_can_ntp_async (GCancellable        *cancellable,
+                       GAsyncReadyCallback  callback,
+                       gpointer             user_data);
+
+gboolean
+xdt_get_can_ntp_finish (GAsyncResult  *result,
+                        gboolean      *can_ntp,
+                        GError       **error);
 
 void
 xdt_get_timezone_async (GCancellable        *cancellable,
