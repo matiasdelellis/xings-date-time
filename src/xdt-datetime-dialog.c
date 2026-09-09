@@ -86,18 +86,56 @@ xdt_date_time_dialog_cancel_activated_cb (GtkButton *button,
 }
 
 static void
+xdt_date_time_set_cb (GObject      *source_object,
+                      GAsyncResult *res,
+                      gpointer      user_data)
+{
+	GtkBuilder *builder;
+	GtkWidget *widget, *parent;
+	GError *error = NULL;
+
+	builder = (GtkBuilder *) xdt_weak_op_take (user_data);
+	if (builder == NULL)
+		return;
+
+	widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_apply"));
+	parent = gtk_widget_get_toplevel (widget);
+
+	if (!xdt_set_time_finish (res, &error)) {
+		gchar *message;
+
+		widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_cancel"));
+		gtk_widget_set_sensitive (widget, TRUE);
+		widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_apply"));
+		gtk_widget_set_sensitive (widget, TRUE);
+
+		message = g_strdup_printf (_("Failed to set time: %s"), error->message);
+		g_critical ("%s", message);
+		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
+		                       message);
+		g_free (message);
+		g_error_free (error);
+		g_object_unref (builder);
+		return;
+	}
+
+	gtk_widget_destroy (parent);
+	g_object_unref (builder);
+}
+
+static void
 xdt_date_time_dialog_apply_activated_cb (GtkButton  *button,
                                          GtkBuilder *builder)
 {
-	GtkWidget *parent;
+	GtkWidget *widget;
 	GDateTime *date_time;
-	GError *error = NULL;
 	gchar *message;
-
-	parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
 
 	date_time = xdt_date_time_new_local_from_dialog (builder);
 	if (date_time == NULL) {
+		GtkWidget *parent;
+
+		parent = gtk_widget_get_toplevel (GTK_WIDGET (button));
 		message = g_strdup (_("Invalid date and time selected"));
 		g_warning ("%s", message);
 		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
@@ -105,19 +143,17 @@ xdt_date_time_dialog_apply_activated_cb (GtkButton  *button,
 		g_free (message);
 		return;
 	}
-	if (!xdt_set_time (date_time, &error)) {
-		message = g_strdup_printf (_("Failed to set time: %s"), error->message);
-		g_critical ("%s", message);
-		xdt_show_error_dialog (GTK_IS_WINDOW (parent) ? GTK_WINDOW (parent) : NULL,
-		                       message);
-		g_free (message);
-		g_error_free (error);
-		g_date_time_unref (date_time);
-		return;
-	}
-	g_date_time_unref (date_time);
 
-	gtk_widget_destroy (parent);
+	/* Block the buttons until the async call completes */
+	widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_cancel"));
+	gtk_widget_set_sensitive (widget, FALSE);
+	widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_apply"));
+	gtk_widget_set_sensitive (widget, FALSE);
+
+	xdt_set_time_async (date_time, NULL,
+	                    xdt_date_time_set_cb,
+	                    xdt_weak_op_new (builder));
+	g_date_time_unref (date_time);
 }
 
 

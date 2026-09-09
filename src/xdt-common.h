@@ -30,6 +30,21 @@ void
 xdt_show_error_dialog (GtkWindow   *parent,
                        const gchar *message);
 
+/* Opaque async user data holding a weak reference.
+ *
+ * Async D-Bus callbacks may fire after their UI is gone (e.g. the user
+ * closed a dialog mid-operation). Take the object with xdt_weak_op_take():
+ * it returns NULL (transfer nothing) when the object is already destroyed,
+ * so callbacks can bail out without touching dead widgets.
+ */
+typedef struct _XdtWeakOp XdtWeakOp;
+
+XdtWeakOp *
+xdt_weak_op_new (gpointer object);
+
+gpointer
+xdt_weak_op_take (XdtWeakOp *op);
+
 G_END_DECLS
 
 #endif /* __XDT_COMMON_H */

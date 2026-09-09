@@ -139,3 +139,15 @@ msgstr "Desconocida"
 #: ../data/xings-date-time.desktop.in.h:3
 msgid "Time;Date;Timezone;Clock;"
 msgstr "Hora;Fecha;Zona horaria;Reloj;"
+
+#: ../src/xdt-timezone-dialog.c:177
+msgid "Loading time zones…"
+msgstr "Cargando zonas horarias…"
+
+#: ../src/xdt-timezone-dialog.c:223
+#, c-format
+msgid "Failed to list time zones: %s"
+msgstr "No se pudieron listar las zonas horarias: %s"
+
+msgid "No matching time zones"
+msgstr "Ninguna zona horaria coincide"

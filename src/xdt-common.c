@@ -49,3 +49,35 @@ xdt_show_error_dialog (GtkWindow   *parent,
 	                          G_CALLBACK (gtk_widget_destroy), dialog);
 	gtk_widget_show_all (dialog);
 }
+
+struct _XdtWeakOp
+{
+	GWeakRef ref;
+};
+
+XdtWeakOp *
+xdt_weak_op_new (gpointer object)
+{
+	XdtWeakOp *op;
+
+	g_return_val_if_fail (G_IS_OBJECT (object), NULL);
+
+	op = g_new0 (XdtWeakOp, 1);
+	g_weak_ref_init (&op->ref, object);
+
+	return op;
+}
+
+gpointer
+xdt_weak_op_take (XdtWeakOp *op)
+{
+	gpointer object;
+
+	g_return_val_if_fail (op != NULL, NULL);
+
+	object = g_weak_ref_get (&op->ref);
+	g_weak_ref_clear (&op->ref);
+	g_free (op);
+
+	return object;
+}

@@ -39,4 +39,71 @@ xdt_set_time (GDateTime *date_time, GError **error);
 gboolean
 xdt_list_timezones (GVariant **timezones, GError **error);
 
+/* Asynchronous variants.
+ *
+ * The synchronous helpers above are executed in a worker thread, so slow
+ * system bus calls (or polkit authentication dialogs) never block the UI.
+ * The callbacks run on the thread-default main context.
+ */
+
+void
+xdt_get_ntp_async (GCancellable        *cancellable,
+                   GAsyncReadyCallback  callback,
+                   gpointer             user_data);
+
+gboolean
+xdt_get_ntp_finish (GAsyncResult  *result,
+                    gboolean      *ntp,
+                    GError       **error);
+
+void
+xdt_set_ntp_async (gboolean             use_ntp,
+                   GCancellable        *cancellable,
+                   GAsyncReadyCallback  callback,
+                   gpointer             user_data);
+
+gboolean
+xdt_set_ntp_finish (GAsyncResult  *result,
+                    GError       **error);
+
+void
+xdt_get_timezone_async (GCancellable        *cancellable,
+                        GAsyncReadyCallback  callback,
+                        gpointer             user_data);
+
+gboolean
+xdt_get_timezone_finish (GAsyncResult  *result,
+                         gchar        **timezone,
+                         GError       **error);
+
+void
+xdt_set_timezone_async (const gchar         *timezone,
+                        GCancellable        *cancellable,
+                        GAsyncReadyCallback  callback,
+                        gpointer             user_data);
+
+gboolean
+xdt_set_timezone_finish (GAsyncResult  *result,
+                         GError       **error);
+
+void
+xdt_set_time_async (GDateTime           *date_time,
+                    GCancellable        *cancellable,
+                    GAsyncReadyCallback  callback,
+                    gpointer             user_data);
+
+gboolean
+xdt_set_time_finish (GAsyncResult  *result,
+                     GError       **error);
+
+void
+xdt_list_timezones_async (GCancellable        *cancellable,
+                          GAsyncReadyCallback  callback,
+                          gpointer             user_data);
+
+gboolean
+xdt_list_timezones_finish (GAsyncResult  *result,
+                           GVariant     **timezones,
+                           GError       **error);
+
 #endif /* __XDT_DBUS_H__ */

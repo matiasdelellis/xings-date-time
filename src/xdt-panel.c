@@ -42,18 +42,144 @@ G_DEFINE_TYPE (XdtPanel, xdt_panel, GTK_TYPE_BOX)
 static gboolean
 xdt_panel_time_auto_set (GtkSwitch *widget,
                          gboolean   state,
-                         XdtPanel  *panel)
+                         XdtPanel  *panel);
+
+/* Async operation context: a weak reference to the panel plus the state
+ * the user requested, so completion callbacks can bail out safely when
+ * the panel is gone and revert the UI otherwise. */
+typedef struct {
+	GWeakRef  panel_ref;
+	gboolean  requested_state;
+} XdtPanelOp;
+
+static XdtPanelOp *
+xdt_panel_op_new (XdtPanel *panel,
+                  gboolean  requested_state)
 {
-	GtkWidget *label, *button;
+	XdtPanelOp *op;
+
+	op = g_new0 (XdtPanelOp, 1);
+	g_weak_ref_init (&op->panel_ref, panel);
+	op->requested_state = requested_state;
+
+	return op;
+}
+
+/* Returns the panel (transfer full) or NULL when it is already destroyed.
+ * Either way the op is consumed. */
+static XdtPanel *
+xdt_panel_op_take_panel (XdtPanelOp *op,
+                         gboolean   *requested_state)
+{
+	XdtPanel *panel;
+
+	g_return_val_if_fail (op != NULL, NULL);
+
+	if (requested_state != NULL)
+		*requested_state = op->requested_state;
+
+	panel = XDT_PANEL (g_weak_ref_get (&op->panel_ref));
+	g_weak_ref_clear (&op->panel_ref);
+	g_free (op);
+
+	return panel;
+}
+
+static void
+xdt_panel_set_manual_visible (XdtPanel *panel,
+                              gboolean  visible)
+{
+	GtkWidget *widget;
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual_label"));
+	gtk_revealer_set_reveal_child (GTK_REVEALER (widget), visible);
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual"));
+	gtk_revealer_set_reveal_child (GTK_REVEALER (widget), visible);
+}
+
+static void
+xdt_panel_ntp_loaded_cb (GObject      *source_object,
+                         GAsyncResult *res,
+                         gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget;
+	gboolean enabled = FALSE;
 	GError *error = NULL;
 
-	if (!xdt_set_ntp (state, &error)) {
-		GtkWidget *toplevel;
+	panel = xdt_panel_op_take_panel (user_data, NULL);
+	if (panel == NULL)
+		return;
+
+	if (!xdt_get_ntp_finish (res, &enabled, &error)) {
+		g_warning (_("Failed to get Ntp state: %s"), error->message);
+		g_error_free (error);
+		enabled = FALSE;
+	}
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_time_auto"));
+	g_signal_handlers_block_by_func (widget, xdt_panel_time_auto_set, panel);
+	gtk_switch_set_active (GTK_SWITCH (widget), enabled);
+	g_signal_handlers_unblock_by_func (widget, xdt_panel_time_auto_set, panel);
+
+	xdt_panel_set_manual_visible (panel, !enabled);
+
+	g_object_unref (panel);
+}
+
+static void
+xdt_panel_timezone_loaded_cb (GObject      *source_object,
+                              GAsyncResult *res,
+                              gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget;
+	gchar *timezone = NULL;
+	GError *error = NULL;
+
+	panel = xdt_panel_op_take_panel (user_data, NULL);
+	if (panel == NULL)
+		return;
+
+	if (!xdt_get_timezone_finish (res, &timezone, &error)) {
+		g_warning (_("Failed to get timezone: %s"), error->message);
+		g_error_free (error);
+		timezone = g_strdup (_("Unknown"));
+	}
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_timezone"));
+	gtk_button_set_label (GTK_BUTTON (widget), timezone);
+	g_free (timezone);
+
+	g_object_unref (panel);
+}
+
+static void
+xdt_panel_ntp_set_cb (GObject      *source_object,
+                      GAsyncResult *res,
+                      gpointer      user_data)
+{
+	XdtPanel *panel;
+	GtkWidget *widget, *toplevel;
+	GError *error = NULL;
+	gboolean requested_state;
+
+	panel = xdt_panel_op_take_panel (user_data, &requested_state);
+	if (panel == NULL)
+		return;
+
+	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_time_auto"));
+	gtk_widget_set_sensitive (widget, TRUE);
+
+	if (!xdt_set_ntp_finish (res, &error)) {
 		gchar *message;
 
+		/* Revert to the previous state */
 		g_signal_handlers_block_by_func (widget, xdt_panel_time_auto_set, panel);
-		gtk_switch_set_active (widget, !state);
+		gtk_switch_set_active (GTK_SWITCH (widget), !requested_state);
 		g_signal_handlers_unblock_by_func (widget, xdt_panel_time_auto_set, panel);
+		xdt_panel_set_manual_visible (panel, requested_state);
 
 		message = g_strdup_printf (_("Failed to set Ntp state: %s"), error->message);
 		g_critical ("%s", message);
@@ -62,17 +188,25 @@ xdt_panel_time_auto_set (GtkSwitch *widget,
 		                       message);
 		g_free (message);
 		g_error_free (error);
-
-		return TRUE;
 	}
 
-	label = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual_label"));
-	gtk_revealer_set_reveal_child (GTK_REVEALER (label), !state);
+	g_object_unref (panel);
+}
 
-	button = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual"));
-	gtk_revealer_set_reveal_child (GTK_REVEALER (button), !state);
-
+static gboolean
+xdt_panel_time_auto_set (GtkSwitch *widget,
+                         gboolean   state,
+                         XdtPanel  *panel)
+{
+	/* Show the requested state right away and wait for the async
+	 * call. The switch is insensitive meanwhile to avoid re-entrancy. */
 	gtk_switch_set_state (widget, state);
+	xdt_panel_set_manual_visible (panel, !state);
+	gtk_widget_set_sensitive (GTK_WIDGET (widget), FALSE);
+
+	xdt_set_ntp_async (state, NULL,
+	                   xdt_panel_ntp_set_cb,
+	                   xdt_panel_op_new (panel, state));
 
 	return TRUE;
 }
@@ -95,17 +229,10 @@ xdt_panel_timezone_closed_cb (GtkWidget *widget,
 			      GdkEvent  *event,
 			      XdtPanel  *panel)
 {
-	gchar *timezone = NULL;
-	GError *error = NULL;
-
-	if (!xdt_get_timezone (&timezone, &error)) {
-		g_debug (_("Failed to get timezone: %s"), error->message);
-		g_error_free(error);
-		return FALSE;
-	}
-	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_timezone"));
-	gtk_button_set_label (GTK_BUTTON (widget), timezone);
-	g_free (timezone);
+	/* Refresh the label without blocking on the system bus */
+	xdt_get_timezone_async (NULL,
+	                        xdt_panel_timezone_loaded_cb,
+	                        xdt_panel_op_new (panel, FALSE));
 
 	return FALSE;
 }
@@ -183,9 +310,6 @@ static void
 xdt_panel_init (XdtPanel *panel)
 {
 	GtkWidget *widget;
-	gboolean enabled = FALSE;
-	gchar *timezone = NULL;
-	GError *error = NULL;
 
 	/* Get builder to construct panel */
 
@@ -200,50 +324,35 @@ xdt_panel_init (XdtPanel *panel)
 	}
 	gtk_box_pack_start (GTK_BOX (panel), GTK_WIDGET (widget), TRUE, TRUE, 0);
 
-	/* Init widgets and connect signals.
-	 * D-Bus failures must not leave the panel half-initialized:
-	 * fall back to sane defaults and keep going. */
-
-	if (!xdt_get_ntp (&enabled, &error)) {
-		g_warning (_("Failed to get Ntp state: %s"), error->message);
-		g_error_free (error);
-		enabled = FALSE;
-	}
+	/* NTP switch. The actual state arrives asynchronously below. */
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "switch_time_auto"));
-	gtk_switch_set_active (GTK_SWITCH (widget), enabled);
 	g_signal_connect (widget, "state-set",
 	                  G_CALLBACK (xdt_panel_time_auto_set), panel);
 
-	/* Manual date time */
-
-	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual_label"));
-	gtk_revealer_set_reveal_child (GTK_REVEALER(widget), !enabled);
-
-	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "revealer_manual"));
-	gtk_revealer_set_reveal_child (GTK_REVEALER(widget), !enabled);
+	/* Manual date time button */
 
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_manual"));
 	g_signal_connect (widget, "clicked",
 	                  G_CALLBACK (xdt_panel_manual_activated_cb), panel);
 
-	/* Timezone */
+	/* Timezone button. The label arrives asynchronously below. */
 
-	if (!xdt_get_timezone (&timezone, &error)) {
-		g_warning (_("Failed to get timezone: %s"), error->message);
-		g_error_free (error);
-		timezone = g_strdup (_("Unknown"));
-	}
 	widget = GTK_WIDGET (gtk_builder_get_object (panel->builder, "button_timezone"));
-	gtk_button_set_label (GTK_BUTTON (widget), timezone);
-	g_free (timezone);
-
 	g_signal_connect (widget, "clicked",
 	                  G_CALLBACK (xdt_panel_timezone_activated_cb), panel);
 
 	/* Update current datetime */
 	xdt_update_time_label (panel);
 	panel->label_timeout_id = g_timeout_add_seconds (1, (GSourceFunc)xdt_update_time_label, panel);
+
+	/* Load the system state without blocking the UI */
+	xdt_get_ntp_async (NULL,
+	                   xdt_panel_ntp_loaded_cb,
+	                   xdt_panel_op_new (panel, FALSE));
+	xdt_get_timezone_async (NULL,
+	                        xdt_panel_timezone_loaded_cb,
+	                        xdt_panel_op_new (panel, FALSE));
 }
 
 /**
