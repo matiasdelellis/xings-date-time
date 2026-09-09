@@ -50,8 +50,8 @@ msgstr "No se pudo establecer la hora: %s"
 
 #: ../src/xdt-panel.c:55
 #, c-format
-msgid "Failed to set Ntp state: %s"
-msgstr "No se pudo establecer el estado de Ntp: %s"
+msgid "Failed to set automatic time: %s"
+msgstr "No se pudo establecer la hora automática: %s"
 
 #: ../src/xdt-panel.c:94 ../src/xdt-panel.c:215
 #, c-format
@@ -60,8 +60,8 @@ msgstr "No se pudo obtener la zona horaria: %s"
 
 #: ../src/xdt-panel.c:190
 #, c-format
-msgid "Failed to get Ntp state: %s"
-msgstr "No se pudo obtener el estado Ntp: %s"
+msgid "Failed to get automatic time state: %s"
+msgstr "No se pudo obtener el estado de la hora automática: %s"
 
 #: ../src/xdt-timezone-dialog.c:53
 #, c-format
@@ -151,3 +151,11 @@ msgstr "No se pudieron listar las zonas horarias: %s"
 
 msgid "No matching time zones"
 msgstr "Ninguna zona horaria coincide"
+
+#: ../src/xdt-panel.c
+msgid "_Close"
+msgstr "_Cerrar"
+
+#, c-format
+msgid "Failed to connect to the system bus: %s"
+msgstr "No se pudo conectar con el bus del sistema: %s"

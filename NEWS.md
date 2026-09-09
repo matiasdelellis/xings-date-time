@@ -11,7 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Asynchronous D-Bus calls: the UI never blocks on the system bus or polkit
   authentication, with a loading indicator for the time zone list
-- Visible error dialogs when setting NTP, time or time zone fails
+- Visible error dialogs when setting automatic time, time or time zone fails
+- Time zone search: spaces match underscores, scroll to top on filter,
+  placeholder on empty results, scroll to the current zone on open,
+  double-click or Enter applies
+- Error info bar shown only for real errors
+- Live refresh when time settings change externally
 - Application keywords and software center metadata (screenshots, releases)
 
 ### Fixed

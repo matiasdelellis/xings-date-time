@@ -191,6 +191,57 @@ xdt_timezone_row_new (const gchar *timezone)
 	return row;
 }
 
+static void
+xdt_timezone_scroll_to_selected_cb (GtkWidget    *row,
+                                    GdkRectangle *allocation,
+                                    gpointer      user_data)
+{
+	GtkWidget *ancestor;
+	GtkAdjustment *adjustment;
+	gdouble lower, upper, page, value;
+
+	/* One-shot: later allocations (e.g. while filtering) must not jump */
+	g_signal_handlers_disconnect_by_func (row,
+	                                      xdt_timezone_scroll_to_selected_cb,
+	                                      NULL);
+
+	ancestor = gtk_widget_get_ancestor (row, GTK_TYPE_SCROLLED_WINDOW);
+	if (ancestor == NULL)
+		return;
+
+	adjustment = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (ancestor));
+	lower = gtk_adjustment_get_lower (adjustment);
+	upper = gtk_adjustment_get_upper (adjustment);
+	page = gtk_adjustment_get_page_size (adjustment);
+
+	/* Row allocation and adjustment values share listbox coordinates */
+	if (upper - page <= lower)
+		return;
+
+	value = allocation->y + allocation->height / 2.0 - page / 2.0;
+	gtk_adjustment_set_value (adjustment, CLAMP (value, lower, upper - page));
+}
+
+static void
+xdt_timezone_row_activated_cb (GtkListBox    *listbox,
+                               GtkListBoxRow *row,
+                               GtkBuilder    *builder)
+{
+	GtkWidget *widget;
+	const gchar *timezone;
+
+	timezone = g_object_get_data (G_OBJECT (row), "TIMEZONE");
+	if (timezone == NULL)
+		return;
+
+	widget = GTK_WIDGET (gtk_builder_get_object (builder, "label_timezone"));
+	gtk_label_set_text (GTK_LABEL (widget), timezone);
+
+	/* Same as pressing the Apply button */
+	widget = GTK_WIDGET (gtk_builder_get_object (builder, "button_apply"));
+	gtk_button_clicked (GTK_BUTTON (widget));
+}
+
 static GtkWidget *
 xdt_timezone_loading_row_new (void)
 {
@@ -229,7 +280,7 @@ xdt_timezone_list_loaded_cb (GObject      *source_object,
 {
 	XdtTimezoneLoadOp *op = user_data;
 	GtkBuilder *builder;
-	GtkWidget *widget, *row;
+	GtkWidget *widget, *row, *selected = NULL;
 	GVariant *timezones;
 	GVariantIter *iter;
 	gchar *label = NULL;
@@ -272,11 +323,19 @@ xdt_timezone_list_loaded_cb (GObject      *source_object,
 		row = xdt_timezone_row_new (label);
 		gtk_list_box_insert (GTK_LIST_BOX (widget), row, -1);
 
-		if (g_strcmp0 (label, current_timezone) == 0)
+		if (selected == NULL && g_strcmp0 (label, current_timezone) == 0) {
 			gtk_list_box_select_row (GTK_LIST_BOX (widget), GTK_LIST_BOX_ROW (row));
+			selected = row;
+		}
 	}
 	g_variant_iter_free (iter);
 	g_variant_unref (timezones);
+
+	if (selected != NULL) {
+		/* Scroll to the current time zone once rows are allocated */
+		g_signal_connect (selected, "size-allocate",
+		                  G_CALLBACK (xdt_timezone_scroll_to_selected_cb), NULL);
+	}
 
 	g_object_unref (builder);
 }
@@ -304,8 +363,14 @@ xdt_timezone_dialog_new (const gchar *timezone, GtkWindow *parent)
 
 	widget = GTK_WIDGET (gtk_builder_get_object (builder, "timezone_list"));
 
+	/* Single click only selects; applying needs double-click or Enter */
+	gtk_list_box_set_activate_on_single_click (GTK_LIST_BOX (widget), FALSE);
+
 	g_signal_connect (widget, "row-selected",
 	                  G_CALLBACK (xdt_timezone_row_selected),
+	                  builder);
+	g_signal_connect (widget, "row-activated",
+	                  G_CALLBACK (xdt_timezone_row_activated_cb),
 	                  builder);
 	gtk_list_box_set_filter_func (GTK_LIST_BOX(widget),
 	                              (GtkListBoxFilterFunc) xdt_timezone_list_filter,
