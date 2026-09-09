@@ -102,24 +102,6 @@ xdt_debug_handler_cb (const gchar *log_domain, GLogLevelFlags log_level,
 }
 
 /**
- * xdt_debug_pre_parse_hook:
- */
-static gboolean
-xdt_debug_pre_parse_hook (GOptionContext *context, GOptionGroup *group, gpointer data, GError **error)
-{
-	const GOptionEntry main_entries[] = {
-		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &_verbose,
-		  /* TRANSLATORS: turn on all debugging */
-		  N_("Show debugging information for all files"), NULL },
-		{ NULL}
-	};
-
-	/* add main entry */
-	g_option_context_add_main_entries (context, main_entries, NULL);
-	return TRUE;
-}
-
-/**
  * xdt_debug_add_log_domain:
  */
 void
@@ -142,19 +124,6 @@ xdt_debug_add_log_domain (const gchar *log_domain)
 }
 
 /**
- * xdt_debug_post_parse_hook:
- */
-static gboolean
-xdt_debug_post_parse_hook (GOptionContext *context, GOptionGroup *group, gpointer data, GError **error)
-{
-	/* verbose? */
-	xdt_debug_add_log_domain (G_LOG_DOMAIN);
-	_console = (isatty (fileno (stdout)) == 1);
-	g_debug ("Verbose debugging %s (on console %i)", _verbose ? "enabled" : "disabled", _console);
-	return TRUE;
-}
-
-/**
  * xdt_debug_set_verbose:
  * @verbose: Whether verbose debugging is enabled
  *
@@ -168,24 +137,5 @@ xdt_debug_set_verbose (gboolean verbose)
 	_console = (isatty (fileno (stdout)) == 1);
 	xdt_debug_add_log_domain (G_LOG_DOMAIN);
 	g_debug ("Verbose debugging %s (on console %i)", _verbose ? "enabled" : "disabled", _console);
-}
-
-/**
- * xdt_debug_get_option_group:
- *
- * Returns a #GOptionGroup for the command line arguments recognized
- * by debugging. You should add this group to your #GOptionContext
- * with g_option_context_add_group(), if you are using
- * g_option_context_parse() to parse your command line arguments.
- *
- * Returns: a #GOptionGroup for the command line arguments
- */
-GOptionGroup *
-xdt_debug_get_option_group (void)
-{
-	GOptionGroup *group;
-	group = g_option_group_new ("debug", _("Debugging Options"), _("Show debugging options"), NULL, NULL);
-	g_option_group_set_parse_hooks (group, xdt_debug_pre_parse_hook, xdt_debug_post_parse_hook);
-	return group;
 }
 

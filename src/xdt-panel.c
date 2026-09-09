@@ -261,6 +261,7 @@ xdt_panel_manual_activated_cb (GtkButton *button,
 	parent = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET(button)));
 
 	xdt_date_time_dialog (date_time, parent);
+	g_date_time_unref (date_time);
 }
 
 static gboolean

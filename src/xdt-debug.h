@@ -24,7 +24,6 @@
 
 #include <glib.h>
 
-GOptionGroup	*xdt_debug_get_option_group	(void);
 void		 xdt_debug_add_log_domain	(const gchar	*log_domain);
 void		 xdt_debug_set_verbose		(gboolean	 verbose);
 

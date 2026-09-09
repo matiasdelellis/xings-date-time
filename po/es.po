@@ -23,21 +23,9 @@ msgstr ""
 msgid "Date & Time"
 msgstr "Fecha y Hora"
 
-#: ../src/xings-date-time.c:76
-msgid "Xings Date & Time"
-msgstr "Fecha y Hora de Xings"
-
 #: ../src/xings-date-time.c
 msgid "Show debugging information for all files"
 msgstr "Mostrar información de depuración para todos los archivos"
-
-#: ../src/xdt-debug.c:171
-msgid "Debugging Options"
-msgstr "Opciones de depuración"
-
-#: ../src/xdt-debug.c:171
-msgid "Show debugging options"
-msgstr "Mostrar opciones de depuración"
 
 #: ../src/xdt-common.c:29
 msgid "%k:%M:%S, %A, %e of %B of %Y"
